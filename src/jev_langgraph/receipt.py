@@ -19,6 +19,13 @@ class Receipt(BaseModel):
 
     id: str = Field(default_factory=lambda: uuid.uuid4().hex)
     invocation_id: str = ""
+    call_id: str = ""
+    thread_id: Optional[str] = None
+    run_id: Optional[str] = None
+    model: Optional[str] = None
+    request_id: Optional[str] = None
+    input_tokens: Optional[int] = Field(default=None, ge=0)
+    output_tokens: Optional[int] = Field(default=None, ge=0)
     node: str
     question_id: str
     kind: Literal["choice", "score", "noul"]
@@ -38,6 +45,16 @@ class Receipt(BaseModel):
     reviewer: Optional[str] = None
     reason: Optional[str] = None
     score: Optional[float] = None
+    gate_probability: Optional[float] = None
+    gate_threshold: Optional[float] = None
+    gate_allowed: Optional[bool] = None
+    composite_value: Optional[float] = None
+    budget_exceeded: bool = False
+    metering_node: Optional[str] = None
+    source_receipt_id: Optional[str] = None
+    item_id: Optional[str] = None
+    snapshot: Any = None
+    question_spec: dict[str, Any] = Field(default_factory=dict)
 
     @property
     def chosen_probability(self) -> float:

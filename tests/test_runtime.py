@@ -122,7 +122,7 @@ def test_observation_does_not_trigger_fallback():
 def test_concurrent_threads_do_not_share_decisions():
     class ByInput(MockJevClient):
         def decide(self, text, questions):
-            label = "a" if "pick_a" in text else "b"
+            label = "a" if text["text"] == "pick_a" else "b"
             return MockJevClient(
                 {"q": ({"a": float(label == "a"), "b": float(label == "b")}, 1.0)}
             ).decide(text, questions)

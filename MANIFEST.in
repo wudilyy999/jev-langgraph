@@ -1,2 +1,3 @@
 include USAGE.md
+include NATIVE.md
 recursive-include examples *.py

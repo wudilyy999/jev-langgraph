@@ -1,5 +1,7 @@
 name: tests
 on: [push, pull_request]
+permissions:
+  contents: read
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -19,3 +21,10 @@ jobs:
       - run: python examples/support_triage.py
       - run: python examples/review_resume.py
       - run: python -m build
+      - name: Install the built wheel
+        run: python -m pip install --force-reinstall --no-deps dist/*.whl
+      - name: Verify the installed distribution
+        working-directory: ${{ runner.temp }}
+        run: |
+          python -c "from importlib.metadata import version; assert version('jev-langgraph') == '0.3.0'"
+          python -m pytest -q "$GITHUB_WORKSPACE/tests"

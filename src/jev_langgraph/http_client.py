@@ -9,7 +9,17 @@ import urllib.request
 from typing import Sequence
 from urllib.parse import urlsplit
 
-from .client import Answer, Choice, DecideResponse, Noul, Question, Score, validate_answer
+from .client import (
+    Answer,
+    Choice,
+    DecideResponse,
+    Noul,
+    Question,
+    Score,
+    StructuredValue,
+    json_value,
+    validate_answer,
+)
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -39,18 +49,37 @@ class HttpJevClient:
         self.model = model
         self._opener = urllib.request.build_opener(_NoRedirect())
 
-    def decide(self, state_text: str, questions: Sequence[Question]) -> DecideResponse:
+    def decide(self, state_text: StructuredValue, questions: Sequence[Question]) -> DecideResponse:
+        if not isinstance(state_text, (str, dict, list)):
+            raise ValueError("JEV state must be a string, object, or array")
+        state_text = json_value(state_text)
         if not questions or len({q.id for q in questions}) != len(questions):
             raise ValueError("Questions must be nonempty with unique IDs")
         wire_questions = {}
         for q in questions:
-            if not q.prompt.strip():
+            if (
+                not isinstance(q.prompt, (str, dict, list))
+                or not q.prompt
+                or (isinstance(q.prompt, str) and not q.prompt.strip())
+            ):
                 raise ValueError(f"Question {q.id} requires explicit instructions")
-            wire = {"type": q.kind, "instructions": q.prompt}
+            wire = {"type": q.kind, "instructions": json_value(q.prompt)}
             if isinstance(q, Choice):
-                wire["criteria"] = {label: label for label in q.options}
+                if q.criteria is not None and set(q.criteria) != set(q.options):
+                    raise ValueError(f"Choice criteria must match options for {q.id}")
+                wire["criteria"] = json_value(
+                    q.criteria if q.criteria is not None else {label: label for label in q.options}
+                )
             elif isinstance(q, Score):
-                wire["criteria"] = list(q.levels)
+                if q.criteria is not None and len(q.criteria) != len(q.levels):
+                    raise ValueError(f"Score criteria must match levels for {q.id}")
+                wire["criteria"] = json_value(
+                    q.criteria if q.criteria is not None else list(q.levels)
+                )
+            elif q.criteria is not None:
+                if set(q.criteria) - {"true", "false"}:
+                    raise ValueError("Noul criteria supports true and false")
+                wire["criteria"] = json_value(q.criteria)
             wire_questions[q.id] = wire
         body = {"state": state_text, "model": self.model, "questions": wire_questions}
         req = urllib.request.Request(
@@ -64,6 +93,7 @@ class HttpJevClient:
         started = time.perf_counter()
         with self._opener.open(req, timeout=self.timeout) as resp:
             payload = json.loads(resp.read())
+            request_id = getattr(resp, "headers", {}).get("x-request-id")
         if set(payload["answers"]) != {q.id for q in questions}:
             raise ValueError("Provider answer IDs do not match questions")
         answers = {}
@@ -95,4 +125,5 @@ class HttpJevClient:
             answers=answers,
             latency_ms=round((time.perf_counter() - started) * 1000),
             raw=payload,
+            request_id=payload.get("request_id") or request_id,
         )

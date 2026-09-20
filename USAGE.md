@@ -3,14 +3,15 @@
 ## 安装与验证
 
 项目是嵌入业务的 Python 包，执行引擎为 LangGraph，无需 fork。
-正式支持 Python 3.11+。本机已准备 Python 3.12 的 `.venv`。
+支持 Python 3.11+。在仓库根目录创建虚拟环境：
 
 ```bash
-cd /Users/liyuyang/Downloads/jev-langgraph
-.venv/bin/python -m pip install -e '.[dev,sqlite]'
-.venv/bin/python -m pytest -q
-.venv/bin/python examples/support_triage.py
-.venv/bin/python examples/review_resume.py
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -e '.[dev,sqlite]'
+python -m pytest -q
+python examples/support_triage.py
+python examples/review_resume.py
 ```
 
 ## 原生节点与 JEV 决策混用
@@ -88,7 +89,7 @@ triage = DecisionNode(
 - 未选节点保留在编译图中，该轮不调度。多个分支写同一状态键时，应配置 LangGraph reducer。
 - 分发后的汇合使用原生 `add_edge(["a", "b"], "join")`，仅在 a、b 均确定会执行时使用。
 - 未映射的选项与畸形模型响应会报错，业务分支不会被默认放行。
-- 默认模型输入为除 Receipt 外的状态文本。可用 `input_selector=lambda s: s["text"]` 限定模型可见信息。
+- 默认模型输入为除 Receipt 和内部字段外的结构化 JSON。可用 `input_selector=lambda s: s["text"]` 限定模型可见信息。
 
 ## 策略与审核
 
@@ -172,3 +173,6 @@ checkpoint 保存各步骤历史。`status="dispatched"` 只表示调度，不�
 迁移到 0.2：Python 最低版本调整至 3.11；移除无实现的 typesafe extra；
 Receipt reducer 从追加改为按 ID 合并；审核会真正暂停；多问题会分发所有选中分支，
 原先仅做旁路观察的问题需显式设置 `edges[id]=None`。
+
+0.3 新增结构化输入、请求计量与预算、守卫门、预取、复合评分、模型版本追踪、
+阈值自适应、批量 Send 决策。完整用法见 [NATIVE.md](NATIVE.md)。

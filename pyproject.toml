@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "jev-langgraph"
-version = "0.2.0"
+version = "0.3.0"
 description = "JEV-native probabilistic decision primitives for LangGraph"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "pytest-asyncio>=0.23", "ruff"]
+dev = ["pytest>=8", "pytest-asyncio>=0.23", "ruff", "langgraph-checkpoint-sqlite>=3,<4"]
 sqlite = ["langgraph-checkpoint-sqlite>=3,<4"]
 
 [tool.setuptools.packages.find]
